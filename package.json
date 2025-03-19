@@ -1,0 +1,9 @@
+{
+    "name": "dom2canvas",
+    "scripts": {
+        "format": "prettier --write index.ts"
+    },
+    "devDependencies": {
+        "prettier": "^3.5.3"
+    }
+}
