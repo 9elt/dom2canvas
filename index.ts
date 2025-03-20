@@ -54,10 +54,7 @@ async function toSvg(
 
     if (options?.backgroundColor) {
         clone.style.backgroundColor = options.backgroundColor;
-        clone.setAttribute(
-            "xmlns",
-            "http://www.w3.org/1999/xhtml"
-        );
+        clone.setAttribute("xmlns", "http://www.w3.org/1999/xhtml");
     }
 
     const width = node.scrollWidth;
@@ -110,48 +107,40 @@ async function cloneNode<N extends Node>(node: N): Promise<N> {
 
         // NOTE: clone pseudo elements
         for (const pseudo of [":before", ":after"]) {
-            const pseudoStyle = window.getComputedStyle(
-                node,
-                pseudo
-            );
-            const content =
-                pseudoStyle.getPropertyValue("content");
+            const pseudoStyle = window.getComputedStyle(node, pseudo);
+            const content = pseudoStyle.getPropertyValue("content");
 
-            if (content !== "" && content !== "none") {
-                const className =
-                    "A" +
-                    (Date.now() + Math.random()).toString(36);
-                clone.classList.add(className);
-
-                const style = document.createElement("style");
-                const selector = "." + className + ":" + pseudo;
-
-                let cssText = "";
-
-                if (pseudoStyle.cssText) {
-                    cssText =
-                        pseudoStyle.cssText +
-                        " content:" +
-                        content +
-                        ";";
-                } else {
-                    for (const prop of pseudoStyle) {
-                        cssText +=
-                            prop +
-                            ":" +
-                            pseudoStyle.getPropertyValue(prop) +
-                            (pseudoStyle.getPropertyPriority(
-                                prop
-                            )
-                                ? " !important"
-                                : "") +
-                            ";";
-                    }
-                }
-
-                style.append(selector + "{" + cssText + "}");
-                clone.appendChild(style);
+            if (content === "" || content === "none") {
+                continue;
             }
+
+            const className = "A" + (Date.now() + Math.random()).toString(36);
+            clone.classList.add(className);
+
+            const style = document.createElement("style");
+            const selector = "." + className + ":" + pseudo;
+
+            let cssText = "";
+
+            if (pseudoStyle.cssText) {
+                cssText = pseudoStyle.cssText + " content:" + content + ";";
+            } else {
+                for (let i = 0; i < pseudoStyle.length; i++) {
+                    const prop = pseudoStyle[i];
+
+                    cssText +=
+                        prop +
+                        ":" +
+                        pseudoStyle.getPropertyValue(prop) +
+                        (pseudoStyle.getPropertyPriority(prop)
+                            ? " !important"
+                            : "") +
+                        ";";
+                }
+            }
+
+            style.append(selector + "{" + cssText + "}");
+            clone.appendChild(style);
         }
 
         // NOTE: clone user input
@@ -165,10 +154,7 @@ async function cloneNode<N extends Node>(node: N): Promise<N> {
 
         // NOTE: fix SVGs
         if (node instanceof SVGElement) {
-            clone.setAttribute(
-                "xmlns",
-                "http://www.w3.org/2000/svg"
-            );
+            clone.setAttribute("xmlns", "http://www.w3.org/2000/svg");
 
             if (node instanceof SVGRectElement) {
                 const width = clone.getAttribute("width");
@@ -208,11 +194,7 @@ async function embedFonts(node: Node): Promise<void> {
                 }
             }
         } catch (error) {
-            console.error(
-                "Error reading CSS style sheet",
-                sheet,
-                error
-            );
+            console.error("Error reading CSS style sheet", sheet, error);
         }
     }
 
@@ -224,8 +206,7 @@ async function embedImages(node: Node): Promise<void> {
         return;
     }
 
-    const background =
-        node.style.getPropertyValue("background");
+    const background = node.style.getPropertyValue("background");
 
     if (REGEX_URL.test(background)) {
         node.style.setProperty(
@@ -254,18 +235,10 @@ async function embedImages(node: Node): Promise<void> {
             await new Promise((resolve, reject) => {
                 node.onload = resolve;
                 node.onerror = reject;
-                node.src =
-                    "data:" +
-                    MIME_TYPES[ext] +
-                    ";base64," +
-                    data;
+                node.src = "data:" + MIME_TYPES[ext] + ";base64," + data;
             });
         } catch (error) {
-            console.error(
-                "Error loading image src:",
-                src,
-                error
-            );
+            console.error("Error loading image src:", src, error);
         }
     } else {
         for (let i = 0; i < node.childNodes.length; i++) {
@@ -274,10 +247,7 @@ async function embedImages(node: Node): Promise<void> {
     }
 }
 
-async function resolveURLs(
-    str: string,
-    baseUrl?: string
-): Promise<string> {
+async function resolveURLs(str: string, baseUrl?: string): Promise<string> {
     if (!REGEX_URL.test(str)) {
         return str;
     }
@@ -342,8 +312,7 @@ async function fetchURL(url: string): Promise<string> {
 }
 
 function fixURL(url: string, baseUrl: string): string {
-    const _document =
-        document.implementation.createHTMLDocument();
+    const _document = document.implementation.createHTMLDocument();
 
     const base = _document.createElement("base");
     _document.head.appendChild(base);
