@@ -53,8 +53,9 @@ async function toSvg(
 
     if (options?.backgroundColor) {
         clone.style.backgroundColor = options.backgroundColor;
-        clone.setAttribute("xmlns", "http://www.w3.org/1999/xhtml");
     }
+
+    clone.setAttribute("xmlns", "http://www.w3.org/1999/xhtml");
 
     const width = node.scrollWidth;
     const height = node.scrollHeight;
