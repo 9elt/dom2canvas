@@ -227,12 +227,12 @@ async function embedImages(node: Node): Promise<void> {
             return;
         }
 
-        const src = node.src;
-
         if (!node.src) {
             console.error("Image has no src", node);
             return;
         }
+
+        const src = node.src;
 
         try {
             const data = await fetchURL(src);
@@ -266,7 +266,7 @@ async function resolveURLs(str: string, baseUrl?: string): Promise<string> {
         const url = baseUrl ? fixURL(_url, baseUrl) : _url;
 
         try {
-            const data = fetchURL(url);
+            const data = await fetchURL(url);
             const ext = url.split(".").pop()!.toLowerCase();
 
             str = str.replace(
