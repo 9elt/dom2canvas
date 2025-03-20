@@ -176,7 +176,7 @@ async function cloneNode<N extends Node>(node: N): Promise<N> {
 }
 
 async function embedFonts(node: Node): Promise<void> {
-    const style = document.createElement("style");
+    let cssText = "";
 
     for (const sheet of document.styleSheets) {
         try {
@@ -188,11 +188,11 @@ async function embedFonts(node: Node): Promise<void> {
                         rule.style.getPropertyValue("src")
                     )
                 ) {
-                    const cssText = await resolveURLs(
+                    cssText += await resolveURLs(
                         rule.cssText,
                         rule.parentStyleSheet?.href!
                     );
-                    style.append(cssText + "\n");
+                    cssText += "\n";
                 }
             }
         } catch (error) {
@@ -200,7 +200,11 @@ async function embedFonts(node: Node): Promise<void> {
         }
     }
 
-    node.appendChild(style);
+    if (cssText) {
+        const style = document.createElement("style");
+        style.append(cssText);
+        node.appendChild(style);
+    }
 }
 
 async function embedImages(node: Node): Promise<void> {
