@@ -121,9 +121,6 @@ async function cloneNode<N extends Node>(node: N): Promise<N> {
         const className = "A" + (Date.now() + Math.random()).toString(36);
         clone.classList.add(className);
 
-        const style = document.createElement("style");
-        const selector = "." + className + ":" + pseudo;
-
         let cssText = "";
 
         if (pseudoStyle.cssText) {
@@ -143,7 +140,8 @@ async function cloneNode<N extends Node>(node: N): Promise<N> {
             }
         }
 
-        style.append(selector + "{" + cssText + "}");
+        const style = document.createElement("style");
+        style.append("." + className + ":" + pseudo + "{" + cssText + "}");
         clone.appendChild(style);
     }
 
