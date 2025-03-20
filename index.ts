@@ -50,7 +50,6 @@ async function toSvg(
     const clone = await cloneNode(node);
 
     await embedFonts(clone);
-    await embedImages(clone);
 
     if (options?.backgroundColor) {
         clone.style.backgroundColor = options.backgroundColor;
@@ -74,10 +73,11 @@ ${xhtml}\
 }
 
 async function cloneNode<N extends Node>(node: N): Promise<N> {
-    const clone =
+    const clone = (
         node instanceof HTMLCanvasElement
             ? await createImage(node.toDataURL())
-            : node.cloneNode(false);
+            : node.cloneNode(false)
+    ) as N;
 
     for (let i = 0; i < node.childNodes.length; i++) {
         const child = node.childNodes[i];
@@ -87,90 +87,93 @@ async function cloneNode<N extends Node>(node: N): Promise<N> {
         }
     }
 
-    if (isElement(clone) && isElement(node)) {
-        // NOTE: clone CSS
-        const style = window.getComputedStyle(node);
+    if (!isElement(clone) || !isElement(node)) {
+        return clone;
+    }
 
-        if (style.cssText) {
-            clone.style.cssText = style.cssText;
+    // NOTE: clone CSS
+    const style = window.getComputedStyle(node);
+
+    if (style.cssText) {
+        clone.style.cssText = style.cssText;
+    } else {
+        for (let i = 0; i < style.length; i++) {
+            const prop = style[i];
+
+            clone.style.setProperty(
+                prop,
+                style.getPropertyValue(prop),
+                style.getPropertyPriority(prop)
+            );
+        }
+    }
+
+    // NOTE: clone pseudo elements
+    for (const pseudo of [":before", ":after"]) {
+        const pseudoStyle = window.getComputedStyle(node, pseudo);
+        const content = pseudoStyle.getPropertyValue("content");
+
+        if (content === "" || content === "none") {
+            continue;
+        }
+
+        const className = "A" + (Date.now() + Math.random()).toString(36);
+        clone.classList.add(className);
+
+        const style = document.createElement("style");
+        const selector = "." + className + ":" + pseudo;
+
+        let cssText = "";
+
+        if (pseudoStyle.cssText) {
+            cssText = pseudoStyle.cssText + " content:" + content + ";";
         } else {
-            for (let i = 0; i < style.length; i++) {
-                const prop = style[i];
+            for (let i = 0; i < pseudoStyle.length; i++) {
+                const prop = pseudoStyle[i];
 
-                clone.style.setProperty(
-                    prop,
-                    style.getPropertyValue(prop),
-                    style.getPropertyPriority(prop)
-                );
+                cssText +=
+                    prop +
+                    ":" +
+                    pseudoStyle.getPropertyValue(prop) +
+                    (pseudoStyle.getPropertyPriority(prop)
+                        ? " !important"
+                        : "") +
+                    ";";
             }
         }
 
-        // NOTE: clone pseudo elements
-        for (const pseudo of [":before", ":after"]) {
-            const pseudoStyle = window.getComputedStyle(node, pseudo);
-            const content = pseudoStyle.getPropertyValue("content");
+        style.append(selector + "{" + cssText + "}");
+        clone.appendChild(style);
+    }
 
-            if (content === "" || content === "none") {
-                continue;
+    // NOTE: clone user input
+    if (node instanceof HTMLTextAreaElement) {
+        clone.innerHTML = node.value;
+    }
+    if (node instanceof HTMLInputElement) {
+        clone.setAttribute("value", node.value);
+    }
+
+    // NOTE: fix SVGs
+    if (node instanceof SVGElement) {
+        clone.setAttribute("xmlns", "http://www.w3.org/2000/svg");
+
+        if (node instanceof SVGRectElement) {
+            const width = clone.getAttribute("width");
+            if (width) {
+                clone.style.setProperty("width", width);
             }
 
-            const className = "A" + (Date.now() + Math.random()).toString(36);
-            clone.classList.add(className);
-
-            const style = document.createElement("style");
-            const selector = "." + className + ":" + pseudo;
-
-            let cssText = "";
-
-            if (pseudoStyle.cssText) {
-                cssText = pseudoStyle.cssText + " content:" + content + ";";
-            } else {
-                for (let i = 0; i < pseudoStyle.length; i++) {
-                    const prop = pseudoStyle[i];
-
-                    cssText +=
-                        prop +
-                        ":" +
-                        pseudoStyle.getPropertyValue(prop) +
-                        (pseudoStyle.getPropertyPriority(prop)
-                            ? " !important"
-                            : "") +
-                        ";";
-                }
-            }
-
-            style.append(selector + "{" + cssText + "}");
-            clone.appendChild(style);
-        }
-
-        // NOTE: clone user input
-        if (node instanceof HTMLTextAreaElement) {
-            clone.innerHTML = node.value;
-        }
-
-        if (node instanceof HTMLInputElement) {
-            clone.setAttribute("value", node.value);
-        }
-
-        // NOTE: fix SVGs
-        if (node instanceof SVGElement) {
-            clone.setAttribute("xmlns", "http://www.w3.org/2000/svg");
-
-            if (node instanceof SVGRectElement) {
-                const width = clone.getAttribute("width");
-                if (width) {
-                    clone.style.setProperty("width", width);
-                }
-
-                const height = clone.getAttribute("height");
-                if (height) {
-                    clone.style.setProperty("height", height);
-                }
+            const height = clone.getAttribute("height");
+            if (height) {
+                clone.style.setProperty("height", height);
             }
         }
     }
 
-    return clone as N;
+    await embedImages(clone);
+
+    return clone;
 }
 
 async function embedFonts(node: Node): Promise<void> {
@@ -239,10 +242,6 @@ async function embedImages(node: Node): Promise<void> {
             });
         } catch (error) {
             console.error("Error loading image src:", src, error);
-        }
-    } else {
-        for (let i = 0; i < node.childNodes.length; i++) {
-            await embedImages(node.childNodes[i]);
         }
     }
 }
